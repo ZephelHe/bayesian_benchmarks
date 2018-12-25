@@ -1,12 +1,19 @@
+import os.path as osp
+import sys
+sys.path.append(osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__)))))
+
 from importlib import import_module
 import os
 
-from bayesian_benchmarks.models.non_bayesian_models import non_bayesian_model
+from .non_bayesian_models import non_bayesian_model
 
 abs_path = os.path.abspath(__file__)[:-len('/get_model.py')]
 
 def get_regression_model(name):
     assert name in all_regression_models
+    if name == 'neural_kernel_network':
+        from .neural_kernel_network.models import RegressionModel as m
+        return m
     return non_bayesian_model(name, 'regression') or \
            import_module('bayesian_benchmarks.models.{}.models'.format(name)).RegressionModel
 
@@ -27,6 +34,7 @@ all_regression_models = [
       'gradient_boosting_machine',
       'adaboost',
       'mlp',
+      'neural_kernel_network',
       ]
 
 all_classification_models = [
@@ -42,6 +50,7 @@ all_classification_models = [
     'gradient_boosting_machine',
     'adaboost',
     'mlp',
+    'neural_kernel_network',
     ]
 
 all_models = list(set(all_regression_models).union(set(all_classification_models)))

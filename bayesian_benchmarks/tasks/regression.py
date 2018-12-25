@@ -4,14 +4,17 @@ A conditional Gaussian estimation task: model p(y_n|x_n) = N(a(x_n), b(x_n))
 Metrics reported are test log likelihood, mean squared error, and absolute error, all for normalized and unnormalized y.
 
 """
+import os.path as osp
+import sys
+sys.path.append(osp.dirname(osp.dirname(osp.abspath(__file__))))
 
 import argparse
 import numpy as np
 from scipy.stats import norm
 
-from bayesian_benchmarks.data import get_regression_data
-from bayesian_benchmarks.database_utils import Database
-from bayesian_benchmarks.models.get_model import get_regression_model
+from data import get_regression_data
+from database_utils import Database
+from models.get_model import get_regression_model
 
 def parse_args():  # pragma: no cover
     parser = argparse.ArgumentParser()
@@ -19,7 +22,7 @@ def parse_args():  # pragma: no cover
     parser.add_argument("--dataset", default='energy', nargs='?', type=str)
     parser.add_argument("--split", default=0, nargs='?', type=int)
     parser.add_argument("--seed", default=0, nargs='?', type=int)
-    parser.add_argument("--database_path", default='', nargs='?', type=str)
+    parser.add_argument("--database_path", default='results/db', nargs='?', type=str)
     return parser.parse_args()
 
 def run(ARGS, data=None, model=None, is_test=False):
@@ -27,9 +30,12 @@ def run(ARGS, data=None, model=None, is_test=False):
     data = data or get_regression_data(ARGS.dataset, split=ARGS.split)
     model = model or get_regression_model(ARGS.model)(is_test=is_test, seed=ARGS.seed)
 
+    print('Starting Fitting')
     model.fit(data.X_train, data.Y_train)
+    print('Predtictting')
     m, v = model.predict(data.X_test)
 
+    print('logging')
     res = {}
 
     l = norm.logpdf(data.Y_test, loc=m, scale=v**0.5)
@@ -49,10 +55,12 @@ def run(ARGS, data=None, model=None, is_test=False):
 
     res.update(ARGS.__dict__)
 
+    print('Writting results')
     if not is_test:  # pragma: no cover
         with Database(ARGS.database_path) as db:
             db.write('regression', res)
 
+    print('End.')
     return res
 
 

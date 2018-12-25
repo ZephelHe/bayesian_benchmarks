@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os.path as osp
+import sys
+sys.path.append(osp.dirname(osp.dirname(osp.abspath(__file__))))
+
 import numpy as np
 import os
 import pandas
