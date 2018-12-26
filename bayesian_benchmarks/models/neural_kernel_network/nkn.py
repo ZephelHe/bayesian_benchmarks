@@ -11,17 +11,18 @@ from gpflow import settings
 from gpflow.transforms import positive
 from gpflow.params import Parameter, Parameterized
 from gpflow.kernels import Kernel, Static
-from gpflow.decors import params_as_tensors
+from gpflow import params_as_tensors, autoflow
 import gpflow.kernels as gfk
+from gpflow import settings
+float_type = settings.float_type
+
+from .parameterized import Parameterized_Iterator
 
 
 class _KernelLayer(Parameterized):
     def __init__(self, input_dim, name):
         Parameterized.__init__(self, name=name)
         self.input_dim = input_dim
-
-    def __call__(self, X):
-        self.forward(X)
 
     def forward(self, input):
         raise NotImplementedError
@@ -35,15 +36,14 @@ class Linear(_KernelLayer):
         super(Linear, self).__init__(input_dim, name)
         self.output_dim = output_dim
 
-        min_w, max_w = 1. / (2 * input_dim), 3. / (2 * input_dim)
-        weights = np.random.uniform(low=min_w, high=max_w, size=[output_dim, input_dim])
+        min_w, max_w = 1. / (2 * self.input_dim), 3. / (2 * self.input_dim)
+        weights = np.random.uniform(low=min_w, high=max_w, size=[self.output_dim, self.input_dim])
         self.weights = Parameter(weights, transform=positive)
         bias = 0.01*np.ones([self.output_dim], dtype=settings.float_type)
         self.bias = Parameter(bias, transform=positive)
 
+    @params_as_tensors
     def forward(self, input):
-        import pdb
-        pdb.set_trace()
         return tf.matmul(input, tf.transpose(self.weights)) + self.bias
 
     def symbolic(self, ks):
@@ -64,6 +64,7 @@ class Product(_KernelLayer):
         assert int(math.fmod(input_dim, step)) == 0, 'input dim must be multiples of step'
         self.step = step
 
+    @params_as_tensors
     def forward(self, input):
         output = tf.reshape(input, [tf.shape(input)[0], -1, self.step])
         output = tf.reduce_prod(output, -1)
@@ -86,15 +87,22 @@ class NKNWrapper(Parameterized):
 
     def __init__(self, config, name='nkn'):
         Parameterized.__init__(self, name=name)
-        self._build_layers(config)
+        self.layers = [_LAYERS[l['name']](**l['params']) for l in config]
 
-    def _build_layers(self, config):
-        self._layers = [_LAYERS[l['name']](**l['params']) for l in config]
+    @property
+    def params(self):
+        for key, param in sorted(self.__dict__.items()):
+            if not key.startswith('_') and Parameterized._is_param_like(param):
+                yield param
+            if not key.startswith('_') and isinstance(param, list):
+                for item in param:
+                    if Parameterized._is_param_like(item):
+                        yield item
 
     def forward(self, input):
         # input: [n*m, n_primitive_kernels]
         outputs = input
-        for l in self._layers:
+        for l in self.layers:
             outputs = l.forward(outputs)
         # outputs: [n*m, 1]
         return outputs
@@ -103,8 +111,8 @@ class NKNWrapper(Parameterized):
         """
         return symbolic formula for the whole network.
         """
-        ks = sp.symbols(['k'+str(i) for i in range(self._layers[0].input_dim)]) + [1.]
-        for l in self._layers:
+        ks = sp.symbols(['k'+str(i) for i in range(self.layers[0].input_dim)]) + [1.]
+        for l in self.layers:
             ks = l.symbolic(ks)
         assert len(ks) == 1, 'output of NKN must only have one term'
         return ks[0]
@@ -147,22 +155,32 @@ class NeuralKernelNetwork(Kernel):
     def __init__(self, input_dim, primitive_kernels, nknWrapper, active_dims=None, name='NKN'):
         super(NeuralKernelNetwork, self).__init__(input_dim, active_dims, name=name)
 
-        self._primitive_kernels = primitive_kernels
-        self._nknWrapper = nknWrapper
+        self.primitive_kernels = primitive_kernels
+        self.nknWrapper = nknWrapper
 
-    # @params_as_tensors
+    @property
+    def params(self):
+        for key, param in sorted(self.__dict__.items()):
+            if not key.startswith('_') and Parameterized._is_param_like(param):
+                yield param
+            if not key.startswith('_') and isinstance(param, list):
+                for item in param:
+                    if Parameterized._is_param_like(item):
+                        yield item
+
+    @params_as_tensors
     def Kdiag(self, X, presliced=False):
         primitive_values = [kern.Kdiag(X) if isinstance(kern, Static) else kern.Kdiag(X, presliced)
-                            for kern in self._primitive_kernels]
+                            for kern in self.primitive_kernels]
         primitive_values = tf.stack(primitive_values, 1)
-        nkn_outputs = self._nknWrapper.forward(primitive_values)
+        nkn_outputs = self.nknWrapper.forward(primitive_values)
         return tf.squeeze(nkn_outputs, -1)
 
     @params_as_tensors
     def K(self, X, X2=None, presliced=False):
-        primitive_values = [kern.K(X, X2, presliced) for kern in self._primitive_kernels]
+        primitive_values = [kern.K(X, X2, presliced) for kern in self.primitive_kernels]
         dynamic_shape_ = tf.shape(primitive_values[0])
         primitive_values = [tf.reshape(val, [-1]) for val in primitive_values]
         primitive_values = tf.stack(primitive_values, 1)
-        nkn_outputs = self._nknWrapper.forward(primitive_values)
+        nkn_outputs = self.nknWrapper.forward(primitive_values)
         return tf.reshape(nkn_outputs, dynamic_shape_)

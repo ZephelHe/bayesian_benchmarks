@@ -20,6 +20,7 @@ It should be feasible to call fit and predict many times (e.g. avoid rebuilding 
 
 import numpy as np
 import gpflow
+from gpflow import params_as_tensors
 from scipy.cluster.vq import kmeans2
 
 from .nkn import NeuralKernelNetwork, NKNWrapper, KernelWrapper
@@ -79,11 +80,11 @@ class RegressionModel:
 
         if not self.model:
             cf = self.nkn_config(X.shape[1], median_distance_local(X))
-            # kern = NeuralKernelNetwork(X.shape[1], KernelWrapper(cf['kern']), NKNWrapper(cf['nkn']))
+            kern = NeuralKernelNetwork(X.shape[1], KernelWrapper(cf['kern']), NKNWrapper(cf['nkn']))
             lik =  gpflow.likelihoods.Gaussian()
-            lik.variacne = self.ARGS.initial_likelihood_var
+            lik.variance = self.ARGS.initial_likelihood_var
 
-            kern = gpflow.kernels.RBF(X.shape[1], lengthscales=float(X.shape[1])**0.5)
+            # kern = gpflow.kernels.RBF(X.shape[1], lengthscales=float(X.shape[1])**0.5)
 
             self.model = gpflow.models.SGPR(X, Y, kern, feat=Z)
             self.model.likelihood.variance = lik.variance.read_value()
