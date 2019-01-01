@@ -7,16 +7,13 @@ import numpy as np
 import math
 import sympy as sp
 
-from gpflow import settings
 from gpflow.transforms import positive
 from gpflow.params import Parameter, Parameterized
 from gpflow.kernels import Kernel, Static
-from gpflow import params_as_tensors, autoflow
+from gpflow import params_as_tensors
 import gpflow.kernels as gfk
 from gpflow import settings
 float_type = settings.float_type
-
-from .parameterized import Parameterized_Iterator
 
 
 class _KernelLayer(Parameterized):

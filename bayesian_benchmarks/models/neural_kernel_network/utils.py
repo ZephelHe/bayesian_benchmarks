@@ -27,17 +27,11 @@ def default(input_dim, ls):
             {'name': 'Linear',  'params': {'input_dim': 4, 'output_dim': 4, 'name': 'layer3'}},
             {'name': 'Product', 'params': {'input_dim': 4, 'step': 2,       'name': 'layer4'}},
             {'name': 'Linear',  'params': {'input_dim': 2, 'output_dim': 1, 'name': 'layer5'}}],
-        # nkn=[
-        #     {'name': 'Linear',  'params': {'input_dim': 6, 'output_dim': 8}},
-        #     {'name': 'Product', 'params': {'input_dim': 8, 'step': 2}},
-        #     {'name': 'Linear',  'params': {'input_dim': 4, 'output_dim': 4}},
-        #     {'name': 'Product', 'params': {'input_dim': 4, 'step': 2}},
-        #     {'name': 'Linear',  'params': {'input_dim': 2, 'output_dim': 1}}],
         kern=[
             {'name': 'Linear',  'params': {'input_dim': input_dim, 'ARD': True, 'name': 'Linear1'}},
             {'name': 'Linear',  'params': {'input_dim': input_dim, 'ARD': True, 'name': 'Linear2'}},
-            {'name': 'RBF',     'params': {'input_dim': input_dim, 'lengthscales': ls / 3., 'ARD': True, 'name': 'RBF1'}}, #TODO: ls
-            {'name': 'RBF',     'params': {'input_dim': input_dim, 'lengthscales': ls / 1., 'ARD': True, 'name': 'RBF2'}},
+            {'name': 'RBF',     'params': {'input_dim': input_dim, 'lengthscales': ls / 6., 'ARD': True, 'name': 'RBF1'}},
+            {'name': 'RBF',     'params': {'input_dim': input_dim, 'lengthscales': ls / 3. * 2., 'ARD': True, 'name': 'RBF2'}},
             {'name': 'RatQuad', 'params': {'input_dim': input_dim, 'alpha': 0.1, 'lengthscales': ls / 3., 'name': 'RatQuad1'}},
             {'name': 'RatQuad', 'params': {'input_dim': input_dim, 'alpha': 1.0, 'lengthscales': ls / 3., 'name': 'RatQuad2'}}],
     )
