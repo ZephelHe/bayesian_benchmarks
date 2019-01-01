@@ -14,6 +14,9 @@ def get_regression_model(name):
     if name == 'neural_kernel_network':
         from .neural_kernel_network.models import RegressionModel as m
         return m
+    if name == 'doubly_stochastic_dgp':
+        from .deep_gp_doubly_stochastic.models import RegressionModel as m
+        return m
     return non_bayesian_model(name, 'regression') or \
            import_module('bayesian_benchmarks.models.{}.models'.format(name)).RegressionModel
 

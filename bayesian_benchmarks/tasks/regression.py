@@ -22,8 +22,9 @@ def parse_args():  # pragma: no cover
     parser.add_argument("--dataset", default='energy', nargs='?', type=str)
     parser.add_argument("--split", default=0, nargs='?', type=int)
     parser.add_argument("--seed", default=0, nargs='?', type=int)
-    parser.add_argument("--database_path", default='results/db', nargs='?', type=str)
-    return parser.parse_args()
+    parser.add_argument("--database_path", default='', nargs='?', type=str)
+    args = parser.parse_args()
+    return args
 
 def run(ARGS, data=None, model=None, is_test=False):
 
@@ -56,9 +57,10 @@ def run(ARGS, data=None, model=None, is_test=False):
     res.update(ARGS.__dict__)
 
     print('Writting results')
-    if not is_test:  # pragma: no cover
-        with Database(ARGS.database_path) as db:
-            db.write('regression', res)
+    print('dataset = %s, model = %s, results = %s' % (ARGS.dataset, ARGS.model, res.__repr__()))
+    # if not is_test:  # pragma: no cover
+    #     with Database(ARGS.database_path) as db:
+    #         db.write('regression', res)
 
     print('End.')
     return res

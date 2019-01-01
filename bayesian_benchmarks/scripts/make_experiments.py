@@ -1,3 +1,7 @@
+import os.path as osp
+import sys
+sys.path.append(osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__)))))
+
 from bayesian_benchmarks.data import regression_datasets, classification_datasets
 from bayesian_benchmarks.database_utils import Database
 
@@ -130,6 +134,7 @@ models = [
           'gradient_boosting_machine',
           'adaboost',
           'mlp',
+          'neural_kernel_network',
           ]
 
 
@@ -139,7 +144,7 @@ combinations.append({'dataset' : regression_datasets})
 combinations.append({'split' : range(10)})
 combinations.append({'model' : models})
 experiments = make_experiment_combinations(combinations)
-experiments = remove_already_run_experiments('regression', experiments)
+# experiments = remove_already_run_experiments('regression', experiments)
 
 make_local_jobs('../tasks/regression', experiments, overwrite=True)
 make_condor_jobs('../tasks/regression', experiments, overwrite=True)
