@@ -8,7 +8,7 @@ import math
 import sympy as sp
 
 from gpflow.transforms import positive
-from gpflow.params import Parameter, Parameterized
+from gpflow.params import Parameter, Parameterized, ParamList
 from gpflow.kernels import Kernel, Static
 from gpflow import params_as_tensors
 import gpflow.kernels as gfk
@@ -84,17 +84,9 @@ class NKNWrapper(Parameterized):
 
     def __init__(self, config, name='nkn'):
         Parameterized.__init__(self, name=name)
-        self.layers = [_LAYERS[l['name']](**l['params']) for l in config]
+        # self.layers = [_LAYERS[l['name']](**l['params']) for l in config]
 
-    @property
-    def params(self):
-        for key, param in sorted(self.__dict__.items()):
-            if not key.startswith('_') and Parameterized._is_param_like(param):
-                yield param
-            if not key.startswith('_') and isinstance(param, list):
-                for item in param:
-                    if Parameterized._is_param_like(item):
-                        yield item
+        self.layers = ParamList([_LAYERS[l['name']](**l['params']) for l in config])
 
     def forward(self, input):
         # input: [n*m, n_primitive_kernels]
@@ -141,7 +133,7 @@ def KernelWrapper(hparams):
              {'name': 'Periodic', params={'period': 2, 'input_dim': 100, 'ls': 2}}]
     """
     assert len(hparams) > 0, 'At least one kernel should be provided.'
-    return [_KERNEL_DICT[k['name']](**k['params']) for k in hparams]
+    return ParamList([_KERNEL_DICT[k['name']](**k['params']) for k in hparams])
 
 
 class NeuralKernelNetwork(Kernel):
@@ -154,16 +146,6 @@ class NeuralKernelNetwork(Kernel):
 
         self.primitive_kernels = primitive_kernels
         self.nknWrapper = nknWrapper
-
-    @property
-    def params(self):
-        for key, param in sorted(self.__dict__.items()):
-            if not key.startswith('_') and Parameterized._is_param_like(param):
-                yield param
-            if not key.startswith('_') and isinstance(param, list):
-                for item in param:
-                    if Parameterized._is_param_like(item):
-                        yield item
 
     @params_as_tensors
     def Kdiag(self, X, presliced=False):
